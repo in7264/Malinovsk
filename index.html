@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Органайзер</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e6e6e6; /* Updated background color */
+            margin: 0;
+            padding: 0;
+        }
+        
+        #organizer {
+            max-width: 800px; /* Increased max-width for a better layout */
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 2px solid #3498db; /* Updated border color */
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        h2 {
+            color: #3498db; /* Updated heading color */
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px; /* Increased margin for better spacing */
+            color: #555;
+        }
+        
+        input, button {
+            margin-bottom: 15px; /* Increased margin for better spacing */
+        }
+        
+        input[type="text"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 10px; /* Updated padding for better input size */
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #2ecc71; /* Updated button color */
+            color: #fff;
+            padding: 12px 20px; /* Updated padding for better button size */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #27ae60; /* Darker color on hover */
+        }
+        
+        #eventList {
+            margin-top: 20px;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        li {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        li:hover {
+            background-color: #f2f2f2; /* Lighter color on hover */
+        }
+        
+        .completed {
+            color: #2ecc71; /* Updated completed event color */
+            text-decoration: line-through;
+        }
+        
+        .expired {
+            color: #e74c3c; /* Updated expired event color */
+        }
+        
+        button.delete {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        button.delete:hover {
+            background-color: #c0392b;
+        }
+            </style>
+</head>
+<body>
+
+    <div id="organizer">
+        <h2>Органайзер</h2>
+        <label for="event">Додати подію:</label>
+        <input type="text" id="event" placeholder="Введіть подію">
+        <label for="datetime">Дата та час завершення:</label>
+        <input type="datetime-local" id="datetime">
+        <button onclick="addEvent()">Додати</button>
+    
+        <div id="eventList">
+            <h3>Список подій</h3>
+            <ul id="events"></ul>
+        </div>
+    </div>
+
+<script>
+    // Перевірка чи є підтримка localStorage в браузері
+    if (typeof(Storage) !== "undefined") {
+        // Якщо підтримка є, використовуємо localStorage для зберігання подій
+        loadEvents();
+
+        function addEvent() {
+            var eventText = document.getElementById("event").value;
+            var eventDatetime = document.getElementById("datetime").value;
+
+            if (eventText.trim() === "" || eventDatetime === "") {
+                alert("Будь ласка, введіть подію та оберіть дату та час.");
+                return;
+            }
+
+            var event = {
+                text: eventText,
+                datetime: eventDatetime,
+                completed: false
+            };
+
+            var events = JSON.parse(localStorage.getItem("events")) || [];
+            events.push(event);
+            localStorage.setItem("events", JSON.stringify(events));
+
+            loadEvents(); // Оновлення відображення подій
+        }
+
+        function loadEvents() {
+            var events = JSON.parse(localStorage.getItem("events")) || [];
+            var eventsList = document.getElementById("events");
+            eventsList.innerHTML = "";
+
+            events.forEach(function (event, index) {
+                var listItem = document.createElement("li");
+                listItem.textContent = event.text + " - " + formatDatetime(event.datetime);
+
+                // Перевірка просрочених подій
+                if (isEventExpired(event.datetime)) {
+                    listItem.classList.add("expired");
+                }
+
+                // Перевірка виконаних подій
+                if (event.completed) {
+                    listItem.classList.add("completed");
+                }
+
+                // Додавання кнопки видалення
+                var deleteButton = document.createElement("button");
+                deleteButton.textContent = "Видалити";
+                deleteButton.onclick = function() {
+                    deleteEvent(index);
+                };
+
+                listItem.appendChild(deleteButton);
+
+                // Додавання обробника кліку для відмічання як виконано
+                listItem.onclick = function() {
+                    toggleCompletion(index);
+                };
+
+                eventsList.appendChild(listItem);
+            });
+        }
+
+        function formatDatetime(datetime) {
+            var eventDate = new Date(datetime);
+            return eventDate.toLocaleString('uk-UA');
+        }
+
+        function isEventExpired(eventDatetime) {
+            var currentDatetime = new Date().toISOString();
+            return eventDatetime < currentDatetime;
+        }
+
+        function deleteEvent(index) {
+            var events = JSON.parse(localStorage.getItem("events")) || [];
+            events.splice(index, 1);
+            localStorage.setItem("events", JSON.stringify(events));
+            loadEvents(); // Оновлення відображення подій
+        }
+
+        function toggleCompletion(index) {
+            var events = JSON.parse(localStorage.getItem("events")) || [];
+            events[index].completed = !events[index].completed;
+            localStorage.setItem("events", JSON.stringify(events));
+            loadEvents(); // Оновлення відображення подій
+        }
+    } else {
+        alert("Вибачте, але ваш браузер не підтримує локальне сховище, органайзер не працюватиме належним чином.");
+    }
+</script>
+
+</body>
+</html>
